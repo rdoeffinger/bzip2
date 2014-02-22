@@ -1,0 +1,63 @@
+
+# This Makefile builds a DLL version of the library,
+# libbz2.dll, using MinGW gcc.
+
+# ------------------------------------------------------------------
+# This file is part of bzip2/libbzip2, a program and library for
+# lossless, block-sorting data compression.
+#
+# bzip2/libbzip2 version 1.0.6 of 6 September 2010
+# Copyright (C) 1996-2010 Julian Seward <jseward@bzip.org>
+#
+# Please read the WARNING, DISCLAIMER and PATENTS sections in the 
+# README file.
+#
+# This program is released under the terms of the license contained
+# in the file LICENSE.
+# ------------------------------------------------------------------
+
+
+SHELL:=/bin/sh
+CC:=i686-w64-mingw32-gcc
+BIGFILES:=-D_FILE_OFFSET_BITS=64
+CFLAGS:=-Wall -Winline -O2 -g $(BIGFILES)
+WINE:=
+
+SRCS:= blocksort.c  \
+       huffman.c    \
+       crctable.c   \
+       randtable.c  \
+       compress.c   \
+       decompress.c \
+       bzlib.c      \
+
+all: libbz2.dll.a libbz2.dll bzip2-shared.exe
+
+libbz2.dll.a libbz2.dll: $(SRCS) libbz2.def
+	$(CC) $(CFLAGS) -shared -Wl,--nxcompat -Wl,--dynamicbase -Wl,--large-address-aware -Wl,--enable-runtime-pseudo-reloc -Wl,--enable-auto-image-base -Wl,--out-implib,libbz2.dll.a -o libbz2.dll $^
+
+bzip2-shared.exe: bzip2.c libbz2.dll.a
+	$(CC) $(CFLAGS) -o $@ $^
+
+clean:
+	rm -f $(OBJS) libbz2.dll libbz2.dll.a bzip2-shared.exe
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+test: bzip2-shared.exe
+	@cat words1
+	$(WINE) ./$^ -1  < sample1.ref > sample1.rb2
+	$(WINE) ./$^ -2  < sample2.ref > sample2.rb2
+	$(WINE) ./$^ -3  < sample3.ref > sample3.rb2
+	$(WINE) ./$^ -d  < sample1.bz2 > sample1.tst
+	$(WINE) ./$^ -d  < sample2.bz2 > sample2.tst
+	$(WINE) ./$^ -ds < sample3.bz2 > sample3.tst
+	cmp sample1.bz2 sample1.rb2
+	cmp sample2.bz2 sample2.rb2
+	cmp sample3.bz2 sample3.rb2
+	cmp sample1.tst sample1.ref
+	cmp sample2.tst sample2.ref
+	cmp sample3.tst sample3.ref
+
+.PHONY: all clean test
