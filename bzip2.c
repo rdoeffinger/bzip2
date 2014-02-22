@@ -128,7 +128,11 @@
 #if BZ_LCCWIN32
 #   include <io.h>
 #   include <fcntl.h>
+#ifdef __MINGW32__
+#   include <sys/stat.h>
+#else
 #   include <sys\stat.h>
+#endif
 
 #   define NORETURN       /**/
 #   define PATH_SEP       '\\'
